@@ -1,15 +1,13 @@
 {
   "name": "unityserver",
   "version": "1.0.0",
-  "description": "a server for the unity websocket example I am working on",
+  "description": "a server for the Ziggurat of the Titan Beetle",
   "main": "ws.js",
   "scripts": {
-    "test": "npm testme"
+    "start": "npm ziggurat_server.js"
   },
-  "keywords": [
-    "unity"
-  ],
-  "author": "zoe",
+  "keywords": [],
+  "author": "Andy Wallace",
   "license": "ISC",
   "dependencies": {
     "ws": "^7.2.3"
