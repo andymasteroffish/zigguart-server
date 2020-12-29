@@ -4,7 +4,7 @@
   "description": "a server for the Ziggurat of the Titan Beetle",
   "main": "ws.js",
   "scripts": {
-    "start": "npm ziggurat_server.js"
+    "start": "node ziggurat_server.js"
   },
   "keywords": [],
   "author": "Andy Wallace",
