@@ -1,7 +1,10 @@
 const WebSocket = require('ws');
 
-const wss = new WebSocket.Server({ port: 3000 }, () => {
-  console.log('listening on 3000');
+//heroku will force this to be port 80
+const PORT = process.env.PORT || 3001;
+
+const wss = new WebSocket.Server({ port: PORT }, () => {
+  console.log('listening on '+PORT);
 });
 
 var clients = [];
