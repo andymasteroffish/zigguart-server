@@ -1,11 +1,30 @@
-const WebSocket = require('ws');
+'use strict';
 
-//heroku will force this to be port 80
-const PORT = process.env.PORT || 3001;
+const express = require('express');
+const { Server } = require('ws');
 
-const wss = new WebSocket.Server({ port: PORT }, () => {
-  console.log('listening on '+PORT);
-});
+const PORT = process.env.PORT || 3000;
+const INDEX = '/index.html';
+
+const server = express()
+  .use((req, res) => res.sendFile(INDEX, { root: __dirname }))
+  .listen(PORT, () => console.log(`Listening on ${PORT}`));
+
+const wss = new Server({ server });
+
+
+
+
+
+
+// const WebSocket = require('ws');
+
+// //heroku will force this to be port 80
+// const PORT = process.env.PORT || 3001;
+
+// const wss = new WebSocket.Server({ port: PORT }, () => {
+//   console.log('listening on '+PORT);
+// });
 
 var clients = [];
 var players = [];
@@ -78,6 +97,10 @@ wss.on('connection', function connection(ws) {
     }
     */
   });
+
+
+  ws.on('close', () => console.log('Client disconnected'));
+
 
 });
 
