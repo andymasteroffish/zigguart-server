@@ -1,8 +1,8 @@
 {
-  "name": "unityserver",
+  "name": "ziggurat_server",
   "version": "1.0.0",
   "description": "a server for the Ziggurat of the Titan Beetle",
-  "main": "ws.js",
+  "main": "ziggurat_server.js",
   "scripts": {
     "start": "node ziggurat_server.js"
   },
