@@ -7,6 +7,8 @@ const wss = new WebSocket.Server({ port: 3000 }, () => {
 var clients = [];
 var players = [];
 
+console.log("I LIVE");
+
 wss.on('connection', function connection(ws) {
   console.log("CONNECTION");
 
