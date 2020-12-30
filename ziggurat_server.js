@@ -26,7 +26,6 @@ const wss = new Server({ server });
 //   console.log('listening on '+PORT);
 // });
 
-var clients = [];
 var players = [];
 
 console.log("I LIVE");
@@ -34,40 +33,24 @@ console.log("I LIVE");
 wss.on('connection', function connection(ws) {
   console.log("CONNECTION");
 
-  clients.push(ws);
-
   //ws.send("Hello new friend");
 
   ws.on('message', function incoming(message) {
-    //let message_raw = String(message);
-    console.log('received: %s', message);
+    //console.log('received: %s', message);
 
     let msg = JSON.parse(message)
-    console.log(msg)
-    //return;
-    
-    //console.log(message_raw);
-
-    // let split = message_raw.split("$");
-    // if (split.length != 2){
-    //   console.log("BAD MESSAGE:"+message);
-    //   return;
-    // }
-
-    // let type = split[0];
-    // let raw_text = split[1];
-
-    // console.log("type:"+type);
-    // console.log("text:"+raw_text); 
+    console.log("i got:"+msg.type);
 
     if (msg.type === "join"){
-      console.log("new player here");
+      
       let player = {
         is_host : msg.is_host == "True",
         room_id : msg.room,
         ws : ws
       }
+      console.log("new player here. host:"+player.is_host+"  room:"+player.room_id);
       players.push(player);
+      console.log("num players:"+players.length);
     }
 
     if (msg.type === "board"){
@@ -77,13 +60,23 @@ wss.on('connection', function connection(ws) {
       //find all clients for that room and send it
       let test_count = 0;
       players.forEach( player => {
-        if (player.room_id == room_id){
+        if (player.room_id == room_id && !player.is_host){
           player.ws.send("board$"+msg.raw_text);
           test_count++;
         }
       })
       console.log("sent board to "+test_count+" clients");
 
+    }
+
+    if (msg.type === "input"){
+      //find the host and sent it their way
+      players.forEach( player => {
+        if (player.room_id == msg.room && player.is_host){
+          player.ws.send("input$"+msg.raw_text);
+          console.log("sent:"+msg.raw_text);
+        }
+      })
     }
 
     /*
@@ -99,7 +92,17 @@ wss.on('connection', function connection(ws) {
   });
 
 
-  ws.on('close', () => console.log('Client disconnected'));
+  ws.on('close', function() {
+    console.log('Client disconnected');
+    //find them and kill them
+    for (let i=players.length-1; i>=0; i--){
+      if (players[i].ws == ws){
+        players.splice(i,1);
+        console.log("  "+players.length+" players left remain");
+        return;
+      }
+    }
+  });
 
 
 });
