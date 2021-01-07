@@ -14,19 +14,8 @@ const wss = new Server({ server });
 
 
 
-
-
-
-// const WebSocket = require('ws');
-
-// //heroku will force this to be port 80
-// const PORT = process.env.PORT || 3001;
-
-// const wss = new WebSocket.Server({ port: PORT }, () => {
-//   console.log('listening on '+PORT);
-// });
-
 var players = [];
+var hosts = [];
 
 console.log("I LIVE");
 
@@ -41,16 +30,52 @@ wss.on('connection', function connection(ws) {
     let msg = JSON.parse(message)
     console.log("i got:"+msg.type);
 
-    if (msg.type === "join"){
-      
+    //host joining
+    if (msg.type === "create_room"){
+      let room_id = get_new_room_id();
       let player = {
-        is_host : msg.is_host == "True",
-        room_id : msg.room,
-        ws : ws
+        is_host : true,
+        room_id : room_id,
+        ws : ws,
+        num_clients : 0
       }
-      console.log("new player here. host:"+player.is_host+"  room:"+player.room_id);
+      console.log("created room: "+player.room_id);
+      players.push(player);
+      hosts.push(player);
+
+      //send confirmation
+      player.ws.send("room_created$"+room_id);
+    }
+
+    //client joining
+    if (msg.type === "join_client"){
+      //find the host
+      let host = get_host(msg.room);
+
+      if (host == null){
+        console.log("can't join client. no host for this room");
+        return;
+      }
+
+      if (host.num_clients >= 3){
+        console.log("can't join client. room is full");
+        return;
+      }
+
+      host.num_clients++;
+
+      let player = {
+        is_host : false,  //msg.is_host == "True",
+        room_id : msg.room,
+        ws : ws,
+        controller_num : host.num_clients
+      }
+      console.log("new client player here. room:"+player.room_id+"  controller: "+player.controller_num);
       players.push(player);
       console.log("num players:"+players.length);
+
+      //send confirmation
+      player.ws.send("client_joined$"+player.controller_num);
     }
 
     if (msg.type === "board"){
@@ -58,6 +83,7 @@ wss.on('connection', function connection(ws) {
       console.log("got a board for room:"+room_id);
 
       //find all clients for that room and send it
+      //TODO: use get_players
       let test_count = 0;
       players.forEach( player => {
         if (player.room_id == room_id && !player.is_host){
@@ -70,6 +96,7 @@ wss.on('connection', function connection(ws) {
     }
 
     if (msg.type === "input"){
+      //TODO: use get_players
       //find the host and sent it their way
       players.forEach( player => {
         if (player.room_id == msg.room && player.is_host){
@@ -79,16 +106,15 @@ wss.on('connection', function connection(ws) {
       })
     }
 
-    /*
-    for (var i = 0; i < clients.length; i++) {
-      //console.log(clients[i])
-
-      //clients[i] != ws so we don't repeat messages back to the sender
-      if(clients[i].readyState === 1 && clients[i] != ws){
-        clients[i].send(message);
+    if (msg.type === "request_verbose"){
+      let host_player = get_host(msg.room);
+      if (host_player != null){
+        host_player.ws.send("request_verbose");
+      }else{
+        console.log("no host for room:"+msg.room);
       }
     }
-    */
+
   });
 
 
@@ -97,8 +123,19 @@ wss.on('connection', function connection(ws) {
     //find them and kill them
     for (let i=players.length-1; i>=0; i--){
       if (players[i].ws == ws){
+        //if they were the host, remove them from te host list too
+        if (players[i].is_host){
+          for (let k=hosts.length-1; k>=0; k--){
+            if (hosts[k] == players[i]){
+              hosts.splice(k,1);
+              console.log("  killed host. "+hosts.length+" hosts left remain");
+            }
+          }
+        }
+
+        //rmeove them from players list
         players.splice(i,1);
-        console.log("  "+players.length+" players left remain");
+        console.log("  killed player. "+players.length+" players left remain");
         return;
       }
     }
@@ -107,4 +144,27 @@ wss.on('connection', function connection(ws) {
 
 });
 
-//NEED A CLIENT DISCONNECT FUNCTION!!!
+function get_clients(room_id){
+  let list = [];
+  players.forEach( player => {
+    if (player.room_id == room_id && !player.is_host){
+      list.push(player);
+    }
+  })
+  return list;
+}
+function get_host(room_id){
+  let val = null
+  hosts.forEach( player => {
+    if (player.room_id == room_id){
+      val = player;
+      return val;
+    }
+  })
+  return val;
+}
+
+
+function get_new_room_id(){
+  return "test";
+}
