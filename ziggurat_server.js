@@ -39,9 +39,9 @@ wss.on('connection', function connection(ws) {
         is_host : true,
         room_id : room_id,
         ws : ws,
-        num_clients : 0
+        num_clients : get_clients(room_id).length
       }
-      console.log("created room: "+player.room_id);
+      console.log("created room: "+player.room_id+" which has "+player.num_clients+" clients");
       players.push(player);
       hosts.push(player);
 
@@ -54,23 +54,43 @@ wss.on('connection', function connection(ws) {
       //find the host
       let host = get_host(msg.room);
 
-      if (host == null){
-        console.log("can't join client. no host for this room");
-        return;
+      //did they already have a controller number?
+      //this will happen if connection gets interupted for an in-progress game
+      let controller_num = -1;
+      if (msg.controller){
+        controller_num = msg.controller;
+        //on a reconnect, the host may have lost the number of conected clients
+        if (host != null){
+          if (host.num_clients < controller_num){
+            host.num_clients = controller_num;
+          }
+        }
+      }
+      //if there was no set controller number, this is a new player, and there are a few reasons why we might reject them
+      else{
+        if (host == null){
+          console.log("can't join client. no host for this room");
+          ws.send("client_join_failed$no_host");
+          return;
+        }
+
+        if (host.num_clients >= 3){
+          console.log("can't join client. room is full");
+          ws.send("client_join_failed$room_full");
+          return;
+        }
+
+        //if we're keeping them, get them a controller number
+        host.num_clients++;
+        controller_num = host.num_clients;
       }
 
-      if (host.num_clients >= 3){
-        console.log("can't join client. room is full");
-        return;
-      }
-
-      host.num_clients++;
 
       let player = {
         is_host : false,  //msg.is_host == "True",
         room_id : msg.room,
         ws : ws,
-        controller_num : host.num_clients
+        controller_num : controller_num
       }
       console.log("new client player here. room:"+player.room_id+"  controller: "+player.controller_num);
       players.push(player);
@@ -171,9 +191,9 @@ function get_new_room_id(){
   return "test";
 }
 
-
+//sending out a constant ping so the Unity project can know somehting is wrong if it hasn't gotten any message for a bit
+//TODO: this could update clients on the timer maybe
 function send_pulse(){
-  console.log("pulse me");
   players.forEach(player => {
     if(player.ws != null){
       player.ws.send("pulse");
