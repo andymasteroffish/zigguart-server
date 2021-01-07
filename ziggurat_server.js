@@ -19,6 +19,8 @@ var hosts = [];
 
 console.log("I LIVE");
 
+setInterval(send_pulse, 1000);
+
 wss.on('connection', function connection(ws) {
   console.log("CONNECTION");
 
@@ -167,4 +169,14 @@ function get_host(room_id){
 
 function get_new_room_id(){
   return "test";
+}
+
+
+function send_pulse(){
+  console.log("pulse me");
+  players.forEach(player => {
+    if(player.ws != null){
+      player.ws.send("pulse");
+    }
+  })
 }
