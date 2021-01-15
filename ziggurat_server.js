@@ -32,6 +32,10 @@ wss.on('connection', function connection(ws) {
     let msg = JSON.parse(message)
     console.log("i got:"+msg.type);
 
+    //a lot of incoming messages want to know the host, os just fetch that
+    //this may be null
+    let host = get_host(msg.room);
+
     //host joining
     if (msg.type === "create_room"){
       let room_id = get_new_room_id();
@@ -39,9 +43,11 @@ wss.on('connection', function connection(ws) {
         is_host : true,
         room_id : room_id,
         ws : ws,
-        num_clients : get_clients(room_id).length
+        max_num_players : msg.num_players,
+        num_clients : get_clients(room_id).length,
+        scene : "character_select"
       }
-      console.log("created room: "+player.room_id+" which has "+player.num_clients+" clients");
+      console.log("created room: "+player.room_id+" which has "+player.num_clients+" clients and max "+player.max_num_players+" players");
       players.push(player);
       hosts.push(player);
 
@@ -51,9 +57,6 @@ wss.on('connection', function connection(ws) {
 
     //client joining
     if (msg.type === "join_client"){
-      //find the host
-      let host = get_host(msg.room);
-
       //did they already have a controller number?
       //this will happen if connection gets interupted for an in-progress game
       let controller_num = -1;
@@ -70,13 +73,13 @@ wss.on('connection', function connection(ws) {
       else{
         if (host == null){
           console.log("can't join client. no host for this room");
-          ws.send("client_join_failed$no_host");
+          ws.send("client_join_failed$No game found with that ID");
           return;
         }
 
-        if (host.num_clients >= 3){
+        if (host.num_clients >= host.max_num_players-1){
           console.log("can't join client. room is full");
-          ws.send("client_join_failed$room_full");
+          ws.send("client_join_failed$Room full");
           return;
         }
 
@@ -84,7 +87,6 @@ wss.on('connection', function connection(ws) {
         host.num_clients++;
         controller_num = host.num_clients;
       }
-
 
       let player = {
         is_host : false,  //msg.is_host == "True",
@@ -97,15 +99,27 @@ wss.on('connection', function connection(ws) {
       console.log("num players:"+players.length);
 
       //send confirmation
-      player.ws.send("client_joined$"+player.controller_num);
+      player.ws.send("client_joined$"+player.controller_num+"|"+host.max_num_players+"|"+host.scene);
+      //let the host know
+      host.ws.send("host_got_client$"+host.num_clients);
     }
 
+    //are we supposed to just pass this along to clients?
+    if (msg.broadcast_to_clients){
+      let clients = get_clients(msg.room);
+      console.log("just passing this to "+clients.length+" clients");
+      clients.forEach( client => {
+        client.ws.send(msg.type+"$"+msg.raw_text);
+      })
+    }
+
+    //TODO: this should just be a broadcast to clients message
     if (msg.type === "board"){
       let room_id = msg.room;
       console.log("got a board for room:"+room_id);
 
       //find all clients for that room and send it
-      //TODO: use get_players
+      //TODO: use get_clients
       let test_count = 0;
       players.forEach( player => {
         if (player.room_id == room_id && !player.is_host){
@@ -114,7 +128,6 @@ wss.on('connection', function connection(ws) {
         }
       })
       console.log("sent board to "+test_count+" clients");
-
     }
 
     if (msg.type === "input"){
@@ -129,12 +142,21 @@ wss.on('connection', function connection(ws) {
     }
 
     if (msg.type === "request_verbose"){
-      let host_player = get_host(msg.room);
-      if (host_player != null){
-        host_player.ws.send("request_verbose");
+      if (host != null){
+        host.ws.send("request_verbose");
       }else{
         console.log("no host for room:"+msg.room);
       }
+    }
+
+    //check if this had any info we should be storing
+    if (host != null){
+      if (msg.scene){
+        host.scene = msg.scene;
+        
+      }
+
+      console.log("host on scene:"+host.scene);
     }
 
   });
@@ -188,7 +210,40 @@ function get_host(room_id){
 
 
 function get_new_room_id(){
-  return "test";
+  //return "TEST";
+
+  let letters = "ABCDEFGHJKLMNPQRSTUVWXYZ"; //removed I since it can be hard to read
+
+  let valid = false;
+  let num_tries = 0
+
+  while (!valid){
+    let code = "";
+    
+    //build it
+    for (let i=0; i<4; i++){
+      let rand_id = Math.floor(Math.random() * letters.length);
+      code += letters.charAt(rand_id);
+    }
+
+    //test it against all current hosts
+    valid = true;
+    hosts.forEach( host =>{
+      if (host.room_id == code){
+        valid = false;
+      }
+    })
+
+    //if it's good return it
+    if (valid){
+      return code;
+    }
+
+    //if we tried too many times, bail
+    if (num_tries > 1000){
+      return "FAILED";
+    }
+  }
 }
 
 //sending out a constant ping so the Unity project can know somehting is wrong if it hasn't gotten any message for a bit
