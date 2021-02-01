@@ -104,6 +104,15 @@ wss.on('connection', function connection(ws) {
       host.ws.send("host_got_client$"+host.num_clients);
     }
 
+    //holding down or releasing the special button just gets sent to eveyrbody in the room
+    if (msg.type === "special_held"){
+      players.forEach( player => {
+        if (player.room_id == msg.room && player.ws != ws){
+          player.ws.send("special_held$"+msg.raw_text);
+        }
+      })
+    }
+
     //are we supposed to just pass this along to clients?
     if (msg.broadcast_to_clients){
       let clients = get_clients(msg.room);
@@ -210,7 +219,7 @@ function get_host(room_id){
 
 
 function get_new_room_id(){
-  //return "TEST";
+  return "TEST";  //testing lol
 
   let letters = "ABCDEFGHJKLMNPQRSTUVWXYZ"; //removed I since it can be hard to read
 
