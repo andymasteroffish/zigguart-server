@@ -40,7 +40,7 @@ wss.on('connection', function connection(ws) {
     if (msg.type === "create_room"){
       //if the version number is not present or does not match, reject it
       if (msg.version != version){
-        console.log("can't join host. wrong verison number");
+        console.log("can't join host. wrong verison number. Expected:"+version+" got:"+msg.version);
         ws.send("host_join_failed$Please update to version "+version);
         return;
       }
