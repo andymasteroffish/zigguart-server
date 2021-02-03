@@ -12,7 +12,7 @@ const server = express()
 
 const wss = new Server({ server });
 
-
+const version = "0.1";
 
 var players = [];
 var hosts = [];
@@ -38,6 +38,13 @@ wss.on('connection', function connection(ws) {
 
     //host joining
     if (msg.type === "create_room"){
+      //if the version number is not present or does not match, reject it
+      if (msg.version != version){
+        console.log("can't join host. wrong verison number");
+        ws.send("host_join_failed$Please update to version "+version);
+        return;
+      }
+
       let room_id = get_new_room_id();
       let player = {
         is_host : true,
@@ -57,6 +64,14 @@ wss.on('connection', function connection(ws) {
 
     //client joining
     if (msg.type === "join_client"){
+
+      //if the version number is not present or does not match, reject it
+      if (msg.version != version){
+        console.log("can't join client. wrong verison number");
+        ws.send("client_join_failed$Please update to version "+version);
+        return;
+      }
+
       //did they already have a controller number?
       //this will happen if connection gets interupted for an in-progress game
       let controller_num = -1;
