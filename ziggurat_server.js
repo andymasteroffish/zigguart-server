@@ -12,7 +12,7 @@ const server = express()
 
 const wss = new Server({ server });
 
-const version = "0.1";
+const version = "0.11";
 
 var players = [];
 var hosts = [];
@@ -234,7 +234,7 @@ function get_host(room_id){
 
 
 function get_new_room_id(){
-  //return "TEST";  //testing lol
+  return "TEST";  //testing lol
 
   let letters = "ABCDEFGHJKLMNPQRSTUVWXYZ"; //removed I since it can be hard to read
 
