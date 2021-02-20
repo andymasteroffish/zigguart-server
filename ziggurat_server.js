@@ -234,7 +234,7 @@ function get_host(room_id){
 
 
 function get_new_room_id(){
-  return "TEST";  //testing lol
+  //return "TEST";  //testing lol
 
   let letters = "ABCDEFGHJKLMNPQRSTUVWXYZ"; //removed I since it can be hard to read
 
