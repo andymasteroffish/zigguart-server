@@ -17,7 +17,7 @@ const version = "0.11";
 var players = [];
 var hosts = [];
 
-const use_test_id = true
+const use_test_id = false
 
 console.log("I LIVE");
 
