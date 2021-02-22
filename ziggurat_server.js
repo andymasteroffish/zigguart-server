@@ -17,6 +17,8 @@ const version = "0.11";
 var players = [];
 var hosts = [];
 
+const use_test_id = true
+
 console.log("I LIVE");
 
 setInterval(send_pulse, 1000);
@@ -101,6 +103,13 @@ wss.on('connection', function connection(ws) {
         //if we're keeping them, get them a controller number
         host.num_clients++;
         controller_num = host.num_clients;
+      }
+
+      //if a client reconnects, there could be no host and we should reject them
+      if (host == null){
+        console.log("can't join client. no host for this room was found");
+        ws.send("client_join_failed$No host");
+        return;
       }
 
       let player = {
@@ -234,7 +243,7 @@ function get_host(room_id){
 
 
 function get_new_room_id(){
-  //return "TEST";  //testing lol
+  if (use_test_id)  return "TEST";  //testing lol
 
   let letters = "ABCDEFGHJKLMNPQRSTUVWXYZ"; //removed I since it can be hard to read
 
