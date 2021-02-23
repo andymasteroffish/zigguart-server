@@ -12,7 +12,7 @@ const server = express()
 
 const wss = new Server({ server });
 
-const version = "0.11";
+const version = "0.12";
 
 var players = [];
 var hosts = [];
