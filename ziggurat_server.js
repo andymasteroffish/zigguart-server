@@ -17,7 +17,7 @@ const version = "0.12";
 var players = [];
 var hosts = [];
 
-const use_test_id = true;
+const use_test_id = false;
 
 console.log("I LIVE");
 
@@ -77,6 +77,7 @@ wss.on('connection', function connection(ws) {
       //did they already have a controller number?
       //this will happen if connection gets interupted for an in-progress game
       let controller_num = -1;
+      let is_audience = false;
       if (msg.controller){
         controller_num = msg.controller;
         //on a reconnect, the host may have lost the number of conected clients
@@ -95,14 +96,18 @@ wss.on('connection', function connection(ws) {
         }
 
         if (host.num_clients >= host.max_num_players-1){
-          console.log("can't join client. room is full");
-          ws.send("client_join_failed$Room full");
-          return;
+          console.log("host has "+host.num_clients+" so set as audience");
+          is_audience = true;
+          //console.log("can't join client. room is full");
+          //ws.send("client_join_failed$Room full");
+          //return;
         }
 
         //if we're keeping them, get them a controller number
         host.num_clients++;
-        controller_num = host.num_clients;
+        if (!is_audience){
+          controller_num = host.num_clients;
+        }
       }
 
       //if a client reconnects, there could be no host and we should reject them
@@ -116,14 +121,15 @@ wss.on('connection', function connection(ws) {
         is_host : false,  //msg.is_host == "True",
         room_id : msg.room,
         ws : ws,
-        controller_num : controller_num
+        controller_num : controller_num,
+        is_audience : is_audience
       }
-      console.log("new client player here. room:"+player.room_id+"  controller: "+player.controller_num);
+      console.log("new client player here. room:"+player.room_id+"  controller: "+player.controller_num+" audience: "+player.is_audience);
       players.push(player);
       console.log("num players:"+players.length);
 
       //send confirmation
-      player.ws.send("client_joined$"+player.controller_num+"|"+host.max_num_players+"|"+host.scene);
+      player.ws.send("client_joined$"+player.controller_num+"|"+host.max_num_players+"|"+host.scene+"|"+player.is_audience);
       //let the host know
       host.ws.send("host_got_client$"+host.num_clients);
     }
@@ -243,7 +249,7 @@ function get_host(room_id){
 
 
 function get_new_room_id(){
-  //if (use_test_id)  return "TEST";  //testing lol
+  if (use_test_id)  return "TEST";  //testing lol
 
   let letters = "ABCDEFGHJKLMNPQRSTUVWXYZ"; //removed I since it can be hard to read
 
