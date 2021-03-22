@@ -12,7 +12,7 @@ const server = express()
 
 const wss = new Server({ server });
 
-const version = "0.13";
+const version = "0.14";
 
 var players = [];
 var hosts = [];
@@ -211,14 +211,14 @@ wss.on('connection', function connection(ws) {
           for (let k=hosts.length-1; k>=0; k--){
             if (hosts[k] == players[i]){
               hosts.splice(k,1);
-              console.log("  killed host. "+hosts.length+" hosts left remain");
+              console.log("  killed host. "+hosts.length+" hosts remain");
             }
           }
         }
 
         //rmeove them from players list
         players.splice(i,1);
-        console.log("  killed player. "+players.length+" players left remain");
+        console.log("  killed player. "+players.length+" players remain");
         return;
       }
     }
