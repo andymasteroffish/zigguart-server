@@ -12,7 +12,7 @@ const server = express()
 
 const wss = new Server({ server });
 
-const version = "0.14";
+const version = "0.15";
 
 var players = [];
 var hosts = [];
@@ -32,7 +32,7 @@ wss.on('connection', function connection(ws) {
     //console.log('received: %s', message);
 
     let msg = JSON.parse(message)
-    console.log("i got:"+msg.type);
+    //console.log("i got:"+msg.type);
 
     //a lot of incoming messages want to know the host, os just fetch that
     //this may be null
@@ -47,14 +47,19 @@ wss.on('connection', function connection(ws) {
         return;
       }
 
-      let room_id = get_new_room_id();
+      let room_id = msg.room_id;
+      if (room_id == null)  room_id = get_new_room_id();
+
+      let scene_name = msg.scene_name;
+      if (scene_name == null) scene_name = "character_select";
+
       let player = {
         is_host : true,
         room_id : room_id,
         ws : ws,
         max_num_players : msg.num_players,
         num_clients : get_clients(room_id).length,
-        scene : "character_select"
+        scene : scene_name
       }
       console.log("created room: "+player.room_id+" which has "+player.num_clients+" clients and max "+player.max_num_players+" players");
       players.push(player);
@@ -119,12 +124,13 @@ wss.on('connection', function connection(ws) {
 
       let player = {
         is_host : false,  //msg.is_host == "True",
+        host : host,
         room_id : msg.room,
         ws : ws,
         controller_num : controller_num,
         is_audience : is_audience
       }
-      console.log("new client player here. room:"+player.room_id+"  controller: "+player.controller_num+" audience: "+player.is_audience);
+      console.log("new client player here. room:"+player.room_id+"  controller: "+player.controller_num+" audience: "+player.is_audience +" on scene "+host.scene);
       players.push(player);
       console.log("num players:"+players.length);
 
@@ -146,7 +152,7 @@ wss.on('connection', function connection(ws) {
     //are we supposed to just pass this along to clients?
     if (msg.broadcast_to_clients){
       let clients = get_clients(msg.room);
-      console.log("just passing this to "+clients.length+" clients");
+      //console.log("just passing this to "+clients.length+" clients");
       clients.forEach( client => {
         client.ws.send(msg.type+"$"+msg.raw_text);
       })
@@ -155,7 +161,7 @@ wss.on('connection', function connection(ws) {
     //TODO: this should just be a broadcast to clients message
     if (msg.type === "board"){
       let room_id = msg.room;
-      console.log("got a board for room:"+room_id);
+      //console.log("got a board for room:"+room_id);
 
       //find all clients for that room and send it
       //TODO: use get_clients
@@ -166,7 +172,7 @@ wss.on('connection', function connection(ws) {
           test_count++;
         }
       })
-      console.log("sent board to "+test_count+" clients");
+      //console.log("sent board to "+test_count+" clients");
     }
 
     if (msg.type === "input"){
@@ -175,7 +181,7 @@ wss.on('connection', function connection(ws) {
       players.forEach( player => {
         if (player.room_id == msg.room && player.is_host){
           player.ws.send("input$"+msg.raw_text);
-          console.log("sent:"+msg.raw_text);
+          //console.log("sent:"+msg.raw_text);
         }
       })
     }
@@ -191,11 +197,9 @@ wss.on('connection', function connection(ws) {
     //check if this had any info we should be storing
     if (host != null){
       if (msg.scene){
-        host.scene = msg.scene;
-        
+        host.scene = msg.scene; 
       }
-
-      console.log("host on scene:"+host.scene);
+      //console.log("host on scene:"+host.scene);
     }
 
   });
@@ -215,8 +219,13 @@ wss.on('connection', function connection(ws) {
             }
           }
         }
+        //if they belonged to a host change num_clients for that host
+        if (players[i].host != null){
+          players[i].host.num_clients--;
+          console.log("  host for this game now has "+players[i].host.num_clients+" clients");
+        }
 
-        //rmeove them from players list
+        //remove them from players list
         players.splice(i,1);
         console.log("  killed player. "+players.length+" players remain");
         return;
