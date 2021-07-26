@@ -23,20 +23,30 @@ console.log("I LIVE");
 
 setInterval(send_pulse, 1000);
 
+const millis_to_consider_client_unresponsive = 4000
+
 wss.on('connection', function connection(ws) {
   console.log("CONNECTION");
 
-  //ws.send("Hello new friend");
+  let this_player = null; //the player asscociated with this connection
 
   ws.on('message', function incoming(message) {
     //console.log('received: %s', message);
 
     let msg = JSON.parse(message)
-    //console.log("i got:"+msg.type);
+    // console.log("i got:"+msg.type);
+    // if (this_player != null){
+    //   console.log(" for player "+this_player.controller_num+" in room "+this_player.room_id)
+    // }
 
-    //a lot of incoming messages want to know the host, os just fetch that
+    //a lot of incoming messages want to know the host, so just fetch that
     //this may be null
     let host = get_host(msg.room);
+
+    //if we have a player for this web socket, mark the time
+    if (this_player != null){
+      this_player.last_message_time =  Date.now();
+    }
 
     //host joining
     if (msg.type === "create_room"){
@@ -57,13 +67,16 @@ wss.on('connection', function connection(ws) {
         is_host : true,
         room_id : room_id,
         ws : ws,
+        controller_num : 0,
         max_num_players : msg.num_players,
         num_clients : get_clients(room_id).length,
-        scene : scene_name
+        scene : scene_name,
+        last_message_time :  Date.now()
       }
       console.log("created room: "+player.room_id+" which has "+player.num_clients+" clients and max "+player.max_num_players+" players");
       players.push(player);
       hosts.push(player);
+      this_player = player;
 
       //send confirmation
       player.ws.send("room_created$"+room_id);
@@ -128,11 +141,13 @@ wss.on('connection', function connection(ws) {
         room_id : msg.room,
         ws : ws,
         controller_num : controller_num,
-        is_audience : is_audience
+        is_audience : is_audience,
+        last_message_time :  Date.now()
       }
       console.log("new client player here. room:"+player.room_id+"  controller: "+player.controller_num+" audience: "+player.is_audience +" on scene "+host.scene);
       players.push(player);
       console.log("num players:"+players.length);
+      this_player = player;
 
       //send confirmation
       player.ws.send("client_joined$"+player.controller_num+"|"+host.max_num_players+"|"+host.scene+"|"+player.is_audience);
@@ -176,14 +191,12 @@ wss.on('connection', function connection(ws) {
     }
 
     if (msg.type === "input"){
-      //TODO: use get_players
-      //find the host and sent it their way
-      players.forEach( player => {
-        if (player.room_id == msg.room && player.is_host){
-          player.ws.send("input$"+msg.raw_text);
-          //console.log("sent:"+msg.raw_text);
-        }
-      })
+      if (host != null){
+        host.ws.send("input$"+msg.raw_text);
+      }
+      else{
+        console.log("BAD! NO HOST FOUND")
+      }
     }
 
     if (msg.type === "request_verbose"){
@@ -210,7 +223,7 @@ wss.on('connection', function connection(ws) {
     //find them and kill them
     for (let i=players.length-1; i>=0; i--){
       if (players[i].ws == ws){
-        //if they were the host, remove them from te host list too
+        //if they were the host, remove them from the host list too
         if (players[i].is_host){
           for (let k=hosts.length-1; k>=0; k--){
             if (hosts[k] == players[i]){
@@ -297,9 +310,41 @@ function get_new_room_id(){
 //sending out a constant ping so the Unity project can know somehting is wrong if it hasn't gotten any message for a bit
 //TODO: this could update clients on the timer maybe
 function send_pulse(){
+
+  hosts.forEach(host => {
+
+    //get all of the clients
+    let clients = get_clients(host.room_id);
+
+    let num_responsive_clients = 0;
+    //send clients a regular pulse and check how long it has been since we've heard from them
+    for(let i=0; i<clients.length; i++){
+      clients[i].ws.send("pulse");
+
+      //only care about unresponsiveness from people actually playing
+      if (!clients[i].is_audience){
+        let millis = Date.now() - clients[i].last_message_time
+      
+        if (millis < millis_to_consider_client_unresponsive){
+         num_responsive_clients++;
+        }
+      }
+    }
+
+    let full_message = "pulse";
+    host.ws.send("pulse$"+num_responsive_clients.toString());
+    
+
+
+  })
+
+  /*
   players.forEach(player => {
     if(player.ws != null){
+      console.log("player "+player.controller_num+" time")
+      console.log(player.last_message_time)
       player.ws.send("pulse");
     }
   })
+  */
 }
