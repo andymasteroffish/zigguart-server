@@ -36,7 +36,7 @@ wss.on('connection', function connection(ws) {
     let msg = JSON.parse(message)
     console.log("i got:"+msg.type);
     if (this_player != null){
-      console.log(" for player "+this_player.controller_num+" in room "+this_player.room_id)
+      console.log(" for player "+this_player.controller_num+(this_player.is_host ? " (host)" : "")+ " in room "+this_player.room_id)
     }
 
     //a lot of incoming messages want to know the host, so just fetch that
@@ -310,7 +310,7 @@ function get_new_room_id(){
 //sending out a constant ping so the Unity project can know something is wrong if it hasn't gotten any message for a bit
 //TODO: this could update clients on the timer maybe
 function send_pulse(){
-  
+
   //keeping track of clients with no host so we can send them a special pulse
   players.forEach(player => {
     player.found_host = false;
