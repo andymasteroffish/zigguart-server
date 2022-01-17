@@ -327,6 +327,12 @@ function send_pulse(){
       clients[i].ws.send("pulse");
       clients[i].found_host = true;
 
+      //if there is a host but it's been too long since we heard form them, the host is unresponsive
+      let host_millis = Date.now() - host.last_message_time
+      if (host_millis < millis_to_consider_client_unresponsive){
+        clients[i].found_host = false;
+      }
+
       //only care about unresponsiveness from people actually playing
       if (!clients[i].is_audience){
         let millis = Date.now() - clients[i].last_message_time
