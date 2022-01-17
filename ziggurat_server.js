@@ -324,12 +324,14 @@ function send_pulse(){
     let num_responsive_clients = 0;
     //send clients a regular pulse and check how long it has been since we've heard from them
     for(let i=0; i<clients.length; i++){
-      clients[i].ws.send("pulse");
-      clients[i].found_host = true;
-
-      //if there is a host but it's been too long since we heard form them, the host is unresponsive
+      //if we have a host and they have recently sent a message, we're good
       let host_millis = Date.now() - host.last_message_time
-      if (host_millis > millis_to_consider_client_unresponsive){
+      if (host_millis <= millis_to_consider_client_unresponsive){
+        clients[i].ws.send("pulse");
+        clients[i].found_host = true;
+      }
+      //otherwise even though we still have a host, they are unrepsonve
+      else{
         clients[i].found_host = false;
       }
 
