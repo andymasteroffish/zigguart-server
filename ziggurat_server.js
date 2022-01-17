@@ -47,6 +47,9 @@ wss.on('connection', function connection(ws) {
     if (this_player != null){
       this_player.last_message_time =  Date.now();
     }
+    else{
+      console.log("  player unkown");
+    }
 
     //host joining
     if (msg.type === "create_room"){
