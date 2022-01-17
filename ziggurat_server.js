@@ -34,10 +34,10 @@ wss.on('connection', function connection(ws) {
     //console.log('received: %s', message);
 
     let msg = JSON.parse(message)
-    //console.log("i got:"+msg.type);
-    // if (this_player != null){
-    //   console.log(" for player "+this_player.controller_num+" in room "+this_player.room_id)
-    // }
+    console.log("i got:"+msg.type);
+    if (this_player != null){
+      console.log(" for player "+this_player.controller_num+" in room "+this_player.room_id)
+    }
 
     //a lot of incoming messages want to know the host, so just fetch that
     //this may be null
