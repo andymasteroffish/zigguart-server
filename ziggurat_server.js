@@ -310,7 +310,7 @@ function get_new_room_id(){
 //sending out a constant ping so the Unity project can know something is wrong if it hasn't gotten any message for a bit
 //TODO: this could update clients on the timer maybe
 function send_pulse(){
-
+  
   //keeping track of clients with no host so we can send them a special pulse
   players.forEach(player => {
     player.found_host = false;
@@ -326,6 +326,7 @@ function send_pulse(){
     for(let i=0; i<clients.length; i++){
       //if we have a host and they have recently sent a message, we're good
       let host_millis = Date.now() - host.last_message_time
+      console.log("host response time: "+host_millis)
       if (host_millis <= millis_to_consider_client_unresponsive){
         clients[i].ws.send("pulse");
         clients[i].found_host = true;
