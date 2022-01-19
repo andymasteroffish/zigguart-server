@@ -34,10 +34,10 @@ wss.on('connection', function connection(ws) {
     //console.log('received: %s', message);
 
     let msg = JSON.parse(message)
-    console.log("i got:"+msg.type);
-    if (this_player != null){
-      console.log(" for player "+this_player.controller_num+(this_player.is_host ? " (host)" : "")+ " in room "+this_player.room_id)
-    }
+    // console.log("i got:"+msg.type);
+    // if (this_player != null){
+    //   console.log(" for player "+this_player.controller_num+(this_player.is_host ? " (host)" : "")+ " in room "+this_player.room_id)
+    // }
 
     //a lot of incoming messages want to know the host, so just fetch that
     //this may be null
@@ -46,9 +46,6 @@ wss.on('connection', function connection(ws) {
     //if we have a player for this web socket, mark the time
     if (this_player != null){
       this_player.last_message_time =  Date.now();
-    }
-    else{
-      console.log("  player unkown");
     }
 
     //host joining
@@ -329,7 +326,7 @@ function send_pulse(){
     for(let i=0; i<clients.length; i++){
       //if we have a host and they have recently sent a message, we're good
       let host_millis = Date.now() - host.last_message_time
-      console.log("host response time: "+host_millis)
+      //console.log("host response time: "+host_millis)
       if (host_millis <= millis_to_consider_client_unresponsive){
         clients[i].ws.send("pulse");
         clients[i].found_host = true;
