@@ -12,7 +12,7 @@ const server = express()
 
 const wss = new Server({ server });
 
-const version = "0.16";
+const version = "0.17";
 
 var players = [];
 var hosts = [];
@@ -227,8 +227,9 @@ wss.on('connection', function connection(ws) {
         if (players[i].is_host){
           for (let k=hosts.length-1; k>=0; k--){
             if (hosts[k] == players[i]){
+              let room_id_temp = hosts[k].room_id;
               hosts.splice(k,1);
-              console.log("  killed host. "+hosts.length+" hosts remain");
+              console.log("  they were the host of room "+room_id_temp+". "+hosts.length+" hosts remain");
             }
           }
         }
